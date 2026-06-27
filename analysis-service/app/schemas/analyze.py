@@ -3,7 +3,10 @@ from uuid import UUID
 
 class AnalyzeRequest(BaseModel):
     code: str
-    language: str | None = None
+    language: str | None = Field(
+    default=None,
+    description="Programming language of the code"
+    )
 
     @field_validator("code")
     def validate_code(cls, value):

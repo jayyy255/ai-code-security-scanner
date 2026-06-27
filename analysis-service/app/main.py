@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from app.routers.analyze import router as scan_router
+from app.routers.health import router as health_router
 
 app = FastAPI(
     title="Code Security Scanner Service",
@@ -10,6 +12,6 @@ app = FastAPI(
 async def root():
     return {"service": "scanner-service","status": "running","version":"1.0.0"}
 
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+app.include_router(health_router)
+
+app.include_router(scan_router)
