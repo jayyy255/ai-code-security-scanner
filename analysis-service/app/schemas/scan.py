@@ -1,4 +1,5 @@
-from pydantic import BaseModel, field_validator,uuid
+from pydantic import BaseModel, Field, field_validator
+from UUID import uuid
 
 class AnalyzeRequest(BaseModel):
     code: str
@@ -19,6 +20,6 @@ class AnalyzeSummary(BaseModel):
     low: int
 
 class AnalyzeResponse(BaseModel):
-    analysisId: uuid.UUID
+    analysis_id: uuid.UUID
     summary: AnalyzeSummary
-    findings: list = []
+    findings: list = Field(default_factory=list)
