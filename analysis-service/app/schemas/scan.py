@@ -20,6 +20,6 @@ class AnalyzeSummary(BaseModel):
     low: int
 
 class AnalyzeResponse(BaseModel):
-    analysis_id: uuid.UUID
+    analysis_id: UUID
     summary: AnalyzeSummary
     findings: list = Field(default_factory=list)
