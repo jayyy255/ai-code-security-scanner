@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from UUID import uuid
+from uuid import UUID
 
 class AnalyzeRequest(BaseModel):
     code: str
