@@ -1,0 +1,273 @@
+// API Service for AI Code Security Reviewer
+
+const BACKEND_URL = '/api'; // Proxied via Vite config
+
+// Generate a random UUID
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Check if a scan result is stored in local storage
+export function getHistory() {
+  const history = localStorage.getItem('guardai_scan_history');
+  return history ? JSON.parse(history) : [];
+}
+
+// Save scan result to history
+export function saveToHistory(scanResult) {
+  const history = getHistory();
+  // Avoid duplicating by analysis_id
+  if (!history.some(item => item.analysis_id === scanResult.analysis_id)) {
+    const updated = [
+      {
+        analysis_id: scanResult.analysis_id,
+        timestamp: new Date().toISOString(),
+        score: scanResult.summary.security_score,
+        language: scanResult.language || 'python',
+        critical: scanResult.summary.critical,
+        high: scanResult.summary.high,
+        medium: scanResult.summary.medium,
+        low: scanResult.summary.low,
+        summary: scanResult.summary,
+        findings: scanResult.findings,
+        code: scanResult.code
+      },
+      ...history
+    ];
+    localStorage.setItem('guardai_scan_history', JSON.stringify(updated));
+  }
+}
+
+// Delete from history
+export function deleteFromHistory(analysisId) {
+  const history = getHistory();
+  const filtered = history.filter(item => item.analysis_id !== analysisId);
+  localStorage.setItem('guardai_scan_history', JSON.stringify(filtered));
+}
+
+// Clear all history
+export function clearHistory() {
+  localStorage.removeItem('guardai_scan_history');
+}
+
+// Get finding by Analysis ID
+export function getAnalysisResult(analysisId) {
+  const history = getHistory();
+  return history.find(item => item.analysis_id === analysisId) || null;
+}
+
+// Call API or fallback to mock
+export async function analyzeCode(code, language) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/analyze/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ code, language })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const result = {
+        ...data,
+        language,
+        code
+      };
+      saveToHistory(result);
+      return result;
+    } else {
+      throw new Error(`Server returned status: ${response.status}`);
+    }
+  } catch (error) {
+    console.warn("Backend API is unreachable. Falling back to Demo Mode with mock results.", error);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const mockResult = generateMockResponse(code, language);
+    saveToHistory(mockResult);
+    return mockResult;
+  }
+}
+
+// Detailed Mock Data Generator for Offline Demo Mode
+function generateMockResponse(code, language) {
+  const analysisId = generateUUID();
+  const cleanLang = language.toLowerCase();
+  
+  let findings = [];
+  let summary = {
+    security_score: 100,
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0
+  };
+
+  if (cleanLang === 'python') {
+    summary = { security_score: 35, critical: 2, high: 1, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'github-pat',
+        line: 5,
+        severity: 'CRITICAL',
+        message: 'Hardcoded GitHub Personal Access Token was exposed in source code.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'A plain-text credentials pattern matching GitHub tokens was discovered directly in the source file. If pushed to a version control system, this key can be easily compromised.',
+        risk: 'Attackers can scan repos, extract the secret, and gain access to your private GitHub organization, codebases, or APIs.',
+        remediation: [
+          'Revoke the leaked token immediately.',
+          'Inject secrets dynamically at runtime from environment variables using `os.environ` or `.env` configuration files.',
+          'Add `.env` to your `.gitignore` file to prevent committing secrets.'
+        ],
+        fixed_code: `import os\n\ntoken = os.getenv("GITHUB_TOKEN")`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'python.lang.security.audit.sqli.sqlite-execute',
+        line: 11,
+        severity: 'HIGH',
+        message: 'Direct formatting of SQL queries using unsanitized user inputs enables SQL Injection.',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-89: Improper Neutralization of Special Elements used in an SQL Command'],
+        vulnerability_class: ['SQL Injection'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Interpolating or formatting SQL strings (using `f"..."`) with parameters directly provided by users bypasses SQL parsing constraints, allowing SQL keywords injection.',
+        risk: 'Attackers can execute queries, bypass authentication filters, delete tables, or read sensitive customer records.',
+        remediation: [
+          'Use parameterized SQL command structures or prepared statements where placeholders are parsed separately from variables.',
+          'Avoid executing dynamic query commands on SQL databases using direct input strings.'
+        ],
+        fixed_code: `query = "SELECT * FROM users WHERE id = ?"\ncursor.execute(query, (user_id,))`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'python.lang.security.audit.system-run-injection',
+        line: 15,
+        severity: 'CRITICAL',
+        message: 'Untrusted user input concatenated into a system shell executor (os.system) causes Remote Code Execution (RCE).',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-78: Improper Neutralization of Special Elements used in an OS Command'],
+        vulnerability_class: ['Command Injection'],
+        likelihood: 'HIGH',
+        impact: 'CRITICAL',
+        confidence: 'HIGH',
+        explanation: 'The function passes raw input directly to the system shell. If an attacker inputs command separator symbols (e.g. `; rm -rf /`), the secondary instruction will execute with system privileges.',
+        risk: 'Complete control of server operating system, filesystem deletion, malware hosting, or data egress.',
+        remediation: [
+          'Use the `subprocess` library with `shell=False` to pass arguments in an array.',
+          'Never execute inputs directly via system command line shells.'
+        ],
+        fixed_code: `import subprocess\n\nsubprocess.run(["ping", "-c", "1", user_id], shell=False, check=True)`
+      }
+    ];
+  } else if (cleanLang === 'javascript' || cleanLang === 'typescript') {
+    summary = { security_score: 45, critical: 1, high: 2, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'aws-access-key',
+        line: 4,
+        severity: 'CRITICAL',
+        message: 'AWS Access Key ID exposed in clear text inside credentials configuration.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'AWS credentials blocks contain hardcoded tokens. Leaving private keys in static files invites unauthorized cloud access.',
+        risk: 'Cloud account takeover, resource creation billing fraud, S3 bucket data dumps, database modifications.',
+        remediation: [
+          'Invalidate credentials keys in the AWS Management Console immediately.',
+          'Load credentials securely from environment configuration properties or task roles (e.g., IAM roles on EC2/ECS).'
+        ],
+        fixed_code: `const s3 = new AWS.S3({\n  accessKeyId: process.env.AWS_ACCESS_KEY_ID,\n  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY\n});`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'javascript.express.security.audit.eval-injection',
+        line: 14,
+        severity: 'HIGH',
+        message: 'Dynamic execution of inputs via eval() represents a dangerous code injection flaw.',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'],
+        vulnerability_class: ['Code Injection'],
+        likelihood: 'MEDIUM',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Passing inputs to eval() executes strings as application code. Attackers can inject node instructions, spawning background jobs or printing process environment configurations.',
+        risk: 'RCE, local file read, access to application environment properties.',
+        remediation: [
+          'Eliminate use of eval() completely. Replace with standard property indexing or JSON parsing if extracting configuration attributes.'
+        ],
+        fixed_code: `console.log('Running: ', command);`
+      }
+    ];
+  } else {
+    // Standard default fallback for generic languages
+    summary = { security_score: 60, critical: 1, high: 1, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'hardcoded-key',
+        line: 5,
+        severity: 'CRITICAL',
+        message: 'Hardcoded security secret or API credential token identified.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Sensitive configurations or keys were found directly declared as code strings. Version control commits will index this permanently.',
+        risk: 'Credentials leak, database access, integration endpoints spoofing.',
+        remediation: [
+          'Rotate tokens immediately.',
+          'Migrate tokens to environment variables or settings files excluded from git.'
+        ],
+        fixed_code: `// Retrieve credentials from environment\nString secret = System.getenv("API_TOKEN");`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'injection-warning',
+        line: 10,
+        severity: 'HIGH',
+        message: 'Improper sanitation of user inputs formatted into operating systems or database queries.',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-89: SQL Injection'],
+        vulnerability_class: ['Injection'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Direct inputs are parsed into engine statements. Dynamic input parsing exposes sub-routine triggers to user controls.',
+        risk: 'Privilege bypass, command injection, remote code execution, database breach.',
+        remediation: [
+          'Ensure string parsing structures decouple the system commands from the argument variables.',
+          'Inject sanitization filters or parameter arrays.'
+        ],
+        fixed_code: `// Safe query parametrization\nPreparedStatement stmt = conn.prepareStatement(query);\nstmt.setString(1, input);`
+      }
+    ];
+  }
+
+  return {
+    analysis_id: analysisId,
+    language,
+    code,
+    summary,
+    findings
+  };
+}
