@@ -15,6 +15,10 @@ class Finding(BaseModel):
     likelihood: str | None = None
     impact: str | None = None
     confidence: str | None = None
+    explanation: str | None = None
+    risk: str | None = None
+    remediation: list[str] = Field(default_factory=list)
+    fixed_code: str | None = None
 
 class AnalyzeRequest(BaseModel):
     code: str

@@ -12,7 +12,13 @@ EXTENSIONS = {
     "cpp": ".cpp"
 }
 
-async def run_scan(
+SEVERITY_MAP = {
+    "ERROR": "HIGH",
+    "WARNING": "MEDIUM",
+    "INFO": "LOW"
+}
+
+def run_scan(
     code: str,
     language: str | None = None
 ):
@@ -40,38 +46,56 @@ async def run_scan(
                 "semgrep",
                 "scan",
                 "--config",
-                "p/security-audit",
+                "auto",
                 temp_path,
                 "--json"
             ],
             capture_output=True,
-            text=True
+            text=True,
+            encoding = "utf-8",
+            errors="ignore"
         )
+
         if result.returncode not in (0, 1):
             raise Exception(result.stderr)
+
         data = json.loads(result.stdout)
 
         findings = []
 
         for finding in data.get("results", []):
+
             findings.append(
                 {
                     "scanner": "semgrep",
                     "rule_id": finding.get("check_id"),
                     "line": finding.get("start", {}).get("line"),
-                    "severity": finding.get("extra", {}).get("severity"),
+                    "severity": SEVERITY_MAP.get(finding.get("extra", {}).get("severity"),"LOW"),
                     "message": finding.get("extra", {}).get("message"),
-                    "owasp": finding.get("extra", {}).get("metadata", {}).get("owasp", []),
-                    "likelihood": finding.get("extra", {}).get("metadata", {}).get("likelihood", []),
-                    "impact": finding.get("extra", {}).get("metadata", {}).get("impact", []),
-                    "confidence": finding.get("extra", {}).get("metadata", {}).get("confidence", []),
-                    "cwe": finding.get("extra", {}).get("metadata", {}).get("cwe", []),
-                    "vulnerability_class": finding.get("extra", {}).get("metadata", {}).get("vulnerability_class", [])
+                    "owasp": finding.get("extra", {})
+                        .get("metadata", {})
+                        .get("owasp", []),
+                    "likelihood": finding.get("extra", {})
+                        .get("metadata", {})
+                        .get("likelihood"),
+                    "impact": finding.get("extra", {})
+                        .get("metadata", {})
+                        .get("impact"),
+                    "confidence": finding.get("extra", {})
+                        .get("metadata", {})
+                        .get("confidence"),
+                    "cwe": finding.get("extra", {})
+                        .get("metadata", {})
+                        .get("cwe", []),
+                    "vulnerability_class": finding.get("extra", {})
+                        .get("metadata", {})
+                        .get("vulnerability_class", [])
                 }
             )
 
         return findings
 
     finally:
+
         if os.path.exists(temp_path):
             os.unlink(temp_path)
