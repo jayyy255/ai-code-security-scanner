@@ -1,0 +1,170 @@
+.history-container {
+  display: flex;
+  flex-direction: column;
+  padding-top: 30px;
+  padding-bottom: 60px;
+  gap: 24px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.history-header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+/* History Table Container */
+.history-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.history-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.history-table th {
+  background: #08090d;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-table td {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.history-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.history-table tbody tr:hover {
+  background-color: rgba(255,255,255,0.01);
+}
+
+.history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Score and badge cells */
+.score-cell-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  font-size: 0.85rem;
+}
+
+.score-cell-badge.safe {
+  border-color: var(--status-safe);
+  color: var(--status-safe);
+  background: var(--status-safe-bg);
+}
+
+.score-cell-badge.warning {
+  border-color: var(--severity-medium);
+  color: var(--severity-medium);
+  background: var(--severity-medium-bg);
+}
+
+.score-cell-badge.critical {
+  border-color: var(--severity-critical);
+  color: var(--severity-critical);
+  background: var(--severity-critical-bg);
+}
+
+.critical-count-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.critical-count-indicator.active {
+  color: var(--severity-critical);
+}
+
+.critical-count-indicator.zero {
+  color: var(--text-muted);
+}
+
+/* Action button row */
+.action-buttons-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.action-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-icon-btn.view:hover {
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+  background: var(--accent-purple-bg);
+}
+
+.action-icon-btn.delete:hover {
+  border-color: var(--severity-critical);
+  color: var(--severity-critical);
+  background: var(--severity-critical-bg);
+}
+
+/* Empty Vault */
+.empty-vault-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  gap: 20px;
+}
+
+.empty-vault-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
