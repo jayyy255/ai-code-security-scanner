@@ -82,6 +82,12 @@ body {
   text-align: left;
 }
 
+.main-content-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
@@ -299,4 +305,129 @@ p {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
+}
+
+/* Navbar Styling */
+.navbar {
+  background: rgba(18, 19, 28, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 14px 0;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.logo-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--accent-purple);
+}
+
+.logo-shield {
+  animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.logo-sparkle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: #fff;
+}
+
+.logo-text {
+  letter-spacing: -0.5px;
+}
+
+.purple-text {
+  color: var(--accent-purple);
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.nav-item.active {
+  color: white;
+  background: var(--accent-purple-bg);
+  border: 1px solid var(--accent-purple-glow);
+}
+
+/* Footer Styling */
+.footer {
+  background: #08090d;
+  border-top: 1px solid var(--border-color);
+  padding: 20px 0;
+  margin-top: auto;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muted-icon {
+  color: var(--text-muted);
+}
+
+.tech-badge {
+  color: var(--text-secondary);
+  font-weight: 500;
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
 }
