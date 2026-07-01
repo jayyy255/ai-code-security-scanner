@@ -22,7 +22,7 @@ export default function Navbar() {
             <ShieldAlert size={22} className="logo-shield" />
             <Sparkles size={12} className="logo-sparkle" />
           </div>
-          <span className="logo-text">Guard<span className="purple-text">AI</span></span>
+          <span className="logo-text">AI Code <span className="purple-text">Security Reviewer</span></span>
         </Link>
         
         <div className="nav-links">

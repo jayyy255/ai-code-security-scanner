@@ -60,7 +60,7 @@ export default function SignupPage() {
             <ShieldAlert size={28} className="logo-shield purple-text" />
             <Sparkles size={14} className="logo-sparkle" />
           </div>
-          <h2>Join Guard<span className="purple-text">AI</span></h2>
+          <h2>Join AI Code <span className="purple-text">Security Reviewer</span></h2>
           <p>Create a secure account to sync your scan findings</p>
         </div>
 

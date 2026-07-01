@@ -46,7 +46,7 @@ export default function LoginPage() {
             <ShieldAlert size={28} className="logo-shield purple-text" />
             <Sparkles size={14} className="logo-sparkle" />
           </div>
-          <h2>Access Guard<span className="purple-text">AI</span></h2>
+          <h2>Access AI Code <span className="purple-text">Security Reviewer</span></h2>
           <p>Login to secure your code & sync your analysis history</p>
         </div>
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-footer">
-          <span>New to GuardAI? <Link to="/signup" className="purple-text font-medium">Create secure account</Link></span>
+          <span>New to AI Code Security Reviewer? <Link to="/signup" className="purple-text font-medium">Create secure account</Link></span>
         </div>
       </div>
     </div>

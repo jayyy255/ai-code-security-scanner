@@ -21,7 +21,9 @@ function generateUUID() {
 
 export async function getCurrentUser() {
   try {
-    const response = await fetch(`${BACKEND_URL}/auth/me`);
+    const response = await fetch(`${BACKEND_URL}/auth/me`, {
+      credentials: 'include'
+    });
     if (response.ok) {
       const data = await response.json();
       if (data.user) {
@@ -41,6 +43,7 @@ export async function getCurrentUser() {
 export async function login(username, password) {
   const response = await fetch(`${BACKEND_URL}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
   });
@@ -58,6 +61,7 @@ export async function login(username, password) {
 export async function signup(username, email, password) {
   const response = await fetch(`${BACKEND_URL}/auth/signup`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, email, password })
   });
@@ -74,7 +78,8 @@ export async function signup(username, email, password) {
 
 export async function logout() {
   const response = await fetch(`${BACKEND_URL}/auth/logout`, {
-    method: 'POST'
+    method: 'POST',
+    credentials: 'include'
   });
 
   if (!response.ok) {
@@ -88,7 +93,7 @@ export async function logout() {
 export async function syncLocalHistoryToBackend() {
   if (!isLoggedIn) return;
   
-  const localHistoryStr = localStorage.getItem('guardai_scan_history');
+  const localHistoryStr = localStorage.getItem('reviewer_scan_history');
   if (!localHistoryStr) return;
 
   try {
@@ -98,11 +103,12 @@ export async function syncLocalHistoryToBackend() {
       for (const item of localHistory) {
         await fetch(`${BACKEND_URL}/history`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item)
         });
       }
-      localStorage.removeItem('guardai_scan_history');
+      localStorage.removeItem('reviewer_scan_history');
       console.log('Local history successfully synced and cleared.');
     }
   } catch (error) {
@@ -116,7 +122,9 @@ export async function syncLocalHistoryToBackend() {
 export async function getHistory() {
   if (isLoggedIn) {
     try {
-      const response = await fetch(`${BACKEND_URL}/history`);
+      const response = await fetch(`${BACKEND_URL}/history`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         return await response.json();
       }
@@ -124,7 +132,7 @@ export async function getHistory() {
       console.warn("Failed to fetch history from database. Falling back to local storage.", error);
     }
   }
-  const history = localStorage.getItem('guardai_scan_history');
+  const history = localStorage.getItem('reviewer_scan_history');
   return history ? JSON.parse(history) : [];
 }
 
@@ -150,7 +158,7 @@ export async function saveToHistory(scanResult) {
         },
         ...history
       ];
-      localStorage.setItem('guardai_scan_history', JSON.stringify(updated));
+      localStorage.setItem('reviewer_scan_history', JSON.stringify(updated));
     }
   }
 }
@@ -160,7 +168,8 @@ export async function deleteFromHistory(analysisId) {
   if (isLoggedIn) {
     try {
       const response = await fetch(`${BACKEND_URL}/history/${analysisId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
       if (response.ok) return;
     } catch (error) {
@@ -170,7 +179,7 @@ export async function deleteFromHistory(analysisId) {
   
   const history = await getHistory();
   const filtered = history.filter(item => item.analysis_id !== analysisId);
-  localStorage.setItem('guardai_scan_history', JSON.stringify(filtered));
+  localStorage.setItem('reviewer_scan_history', JSON.stringify(filtered));
 }
 
 // Clear all history
@@ -178,14 +187,15 @@ export async function clearHistory() {
   if (isLoggedIn) {
     try {
       const response = await fetch(`${BACKEND_URL}/history`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
       if (response.ok) return;
     } catch (error) {
       console.error("Failed to clear database vault:", error);
     }
   }
-  localStorage.removeItem('guardai_scan_history');
+  localStorage.removeItem('reviewer_scan_history');
 }
 
 // Get finding by Analysis ID
@@ -199,6 +209,7 @@ export async function analyzeCode(code, language) {
   try {
     const response = await fetch(`${BACKEND_URL}/analyze`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json'
       },
