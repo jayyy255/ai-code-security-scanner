@@ -361,6 +361,178 @@ function generateMockResponse(code, language) {
         fixed_code: `console.log('Running: ', command);`
       }
     ];
+  } else if (cleanLang === 'java') {
+    summary = { security_score: 50, critical: 1, high: 1, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'db-password',
+        line: 63,
+        severity: 'CRITICAL',
+        message: 'Hardcoded database credentials exposed in static variable.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'The static field `DB_PASS` contains a hardcoded password. Committing database passwords to version control allows unauthorized access to database contents.',
+        risk: 'Attackers can access production database tables, reading or corrupting business records.',
+        remediation: [
+          'Rotate the database password immediately.',
+          'Load credentials dynamically using environment variables or a configuration manager.'
+        ],
+        fixed_code: `private static final String DB_PASS = System.getenv("DB_PASSWORD");`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'java.lang.security.audit.sqli',
+        line: 69,
+        severity: 'HIGH',
+        message: 'Unsanitized string concatenation in SQL statement causing SQL Injection.',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-89: SQL Injection'],
+        vulnerability_class: ['SQL Injection'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'String concatenation dynamically inserts parameters directly into SQL instructions, allowing external user inputs to manipulate database queries.',
+        risk: 'Attackers can bypass query logic to read all records, edit records, or drop tables.',
+        remediation: [
+          'Use parameterized SQL statements with prepared statements placeholders (?)'
+        ],
+        fixed_code: `String sql = "SELECT * FROM products WHERE category = ?";\nPreparedStatement stmt = conn.prepareStatement(sql);\nstmt.setString(1, input);\nResultSet rs = stmt.executeQuery();`
+      }
+    ];
+  } else if (cleanLang === 'go') {
+    summary = { security_score: 48, critical: 1, high: 1, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'slack-token',
+        line: 84,
+        severity: 'CRITICAL',
+        message: 'Hardcoded Slack access token exposed in source code.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Exposing Slack credentials in code makes bot channels and workspace contents accessible to outsiders.',
+        risk: 'Attackers can post false messages, read messages, or steal user details in your Slack workspace.',
+        remediation: [
+          'Revoke the token in the Slack app console.',
+          'Inject Slack tokens dynamically from the environment.'
+        ],
+        fixed_code: `slackToken := os.Getenv("SLACK_API_TOKEN")`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'go.lang.security.audit.cmd-injection',
+        line: 89,
+        severity: 'HIGH',
+        message: 'Command execution with unsanitized user inputs enables OS Command Injection.',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-78: Command Injection'],
+        vulnerability_class: ['Command Injection'],
+        likelihood: 'HIGH',
+        impact: 'CRITICAL',
+        confidence: 'HIGH',
+        explanation: 'Running commands inside a shell wrapper (sh -c) using concatenated strings allows users to append command delimiters (like ; or &&) to run arbitrary terminal commands.',
+        risk: 'Full takeover of host OS privileges and execution of arbitrary binaries.',
+        remediation: [
+          'Bypass the shell executor and run target executable directly with command arguments passed as an array.'
+        ],
+        fixed_code: `cmd := exec.Command("nslookup", target)`
+      }
+    ];
+  } else if (cleanLang === 'cpp' || cleanLang === 'c') {
+    summary = { security_score: 55, critical: 1, high: 1, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'api-key',
+        line: 110,
+        severity: 'CRITICAL',
+        message: 'Hardcoded static API key exposed in source code.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Declaring API keys as static strings makes them visible in the binary, easily extracted by reverse-engineering.',
+        risk: 'Unauthorized use of API quota and billing costs.',
+        remediation: [
+          'Rotate the API key.',
+          'Load keys dynamically from secure config files or variables.'
+        ],
+        fixed_code: `const char* apiKey = std::getenv("API_KEY");`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'cpp.lang.security.audit.strcpy-buffer-overflow',
+        line: 115,
+        severity: 'HIGH',
+        message: 'Unbounded copy with strcpy() enables stack-based Buffer Overflow.',
+        owasp: ['A09:2021-Security Logging and Monitoring Failures'],
+        cwe: ['CWE-120: Buffer Copy without Checking Size of Input'],
+        vulnerability_class: ['Buffer Overflow'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'strcpy does not restrict the bytes copied. If the source input size exceeds the 64-byte destination buffer, it overflows the stack memory, corrupting adjacent registers or return addresses.',
+        risk: 'Stack corruption, program crashes, or remote arbitrary code execution.',
+        remediation: [
+          'Use boundary-checking alternatives like strncpy or std::string objects in C++.'
+        ],
+        fixed_code: `// Safe copy using boundary safety in C++\nstd::string safeBuffer = userInput;\nstd::cout << "Input received: " << safeBuffer << std::endl;`
+      }
+    ];
+  } else if (cleanLang === 'csharp' || cleanLang === 'cs') {
+    summary = { security_score: 52, critical: 1, high: 1, medium: 0, low: 0 };
+    findings = [
+      {
+        scanner: 'gitleaks',
+        rule_id: 'jwt-secret',
+        line: 124,
+        severity: 'CRITICAL',
+        message: 'Hardcoded JWT signing key exposed in code definition.',
+        owasp: ['A07:2021-Identification and Authentication Failures'],
+        cwe: ['CWE-798: Use of Hardcoded Credentials'],
+        vulnerability_class: ['Hardcoded Secrets'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'JWT secrets signed in clear text permit third parties to forge signed tokens, bypassing auth checks entirely.',
+        risk: 'Bypass auth, privilege escalation to administrator roles.',
+        remediation: [
+          'Invalidate existing tokens.',
+          'Retrieve the token key from a secure app settings config or cloud key vault.'
+        ],
+        fixed_code: `private static string JwtSecret => Environment.GetEnvironmentVariable("JWT_SIGNING_KEY");`
+      },
+      {
+        scanner: 'semgrep',
+        rule_id: 'csharp.lang.security.audit.cmd-injection',
+        line: 127,
+        severity: 'HIGH',
+        message: 'Concatenated system shell args cause OS command injection.',
+        owasp: ['A03:2021-Injection'],
+        cwe: ['CWE-78: Command Injection'],
+        vulnerability_class: ['Command Injection'],
+        likelihood: 'HIGH',
+        impact: 'HIGH',
+        confidence: 'HIGH',
+        explanation: 'Passing inputs to cmd.exe command arguments enables argument injection and OS execution hijacking.',
+        risk: 'Arbitrary shell instructions run with application process credentials.',
+        remediation: [
+          'Strictly sanitize string arguments or pass them separately in ProcessStartInfo.ArgumentList (available in .NET Core).'
+        ],
+        fixed_code: `// Safe execution using ArgumentList\nProcessStartInfo startInfo = new ProcessStartInfo() {\n    FileName = "dir",\n    RedirectStandardOutput = true,\n    UseShellExecute = false\n};\nstartInfo.ArgumentList.Add(input);\nProcess process = Process.Start(startInfo);`
+      }
+    ];
   } else {
     summary = { security_score: 60, critical: 1, high: 1, medium: 0, low: 0 };
     findings = [
