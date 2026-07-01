@@ -1,6 +1,13 @@
 // API Service for AI Code Security Reviewer
 
-const BACKEND_URL = '/api'; // Proxied via Vite config
+const BACKEND_URL = '/api';
+
+let isLoggedIn = false;
+
+// Helper to determine if user is logged in (used locally in this service)
+export function setLoggedInStatus(status) {
+  isLoggedIn = status;
+}
 
 // Generate a random UUID
 function generateUUID() {
@@ -10,59 +17,187 @@ function generateUUID() {
   });
 }
 
+// --- AUTH SERVICES ---
+
+export async function getCurrentUser() {
+  try {
+    const response = await fetch(`${BACKEND_URL}/auth/me`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.user) {
+        isLoggedIn = true;
+        return data.user;
+      }
+    }
+    isLoggedIn = false;
+    return null;
+  } catch (error) {
+    console.error("Error getting session user:", error);
+    isLoggedIn = false;
+    return null;
+  }
+}
+
+export async function login(username, password) {
+  const response = await fetch(`${BACKEND_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json();
+    throw new Error(errData.error || 'Login failed');
+  }
+
+  const data = await response.json();
+  isLoggedIn = true;
+  return data.user;
+}
+
+export async function signup(username, email, password) {
+  const response = await fetch(`${BACKEND_URL}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, email, password })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json();
+    throw new Error(errData.error || 'Signup failed');
+  }
+
+  const data = await response.json();
+  isLoggedIn = true;
+  return data.user;
+}
+
+export async function logout() {
+  const response = await fetch(`${BACKEND_URL}/auth/logout`, {
+    method: 'POST'
+  });
+
+  if (!response.ok) {
+    throw new Error('Logout failed');
+  }
+
+  isLoggedIn = false;
+}
+
+// Sync Local Guest History to MongoDB backend
+export async function syncLocalHistoryToBackend() {
+  if (!isLoggedIn) return;
+  
+  const localHistoryStr = localStorage.getItem('guardai_scan_history');
+  if (!localHistoryStr) return;
+
+  try {
+    const localHistory = JSON.parse(localHistoryStr);
+    if (localHistory && localHistory.length > 0) {
+      console.log(`Syncing ${localHistory.length} local scans to database...`);
+      for (const item of localHistory) {
+        await fetch(`${BACKEND_URL}/history`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item)
+        });
+      }
+      localStorage.removeItem('guardai_scan_history');
+      console.log('Local history successfully synced and cleared.');
+    }
+  } catch (error) {
+    console.error('Failed to sync guest history to backend:', error);
+  }
+}
+
+// --- HISTORY SERVICES (SYNCED W/ BACKEND) ---
+
 // Check if a scan result is stored in local storage
-export function getHistory() {
+export async function getHistory() {
+  if (isLoggedIn) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/history`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn("Failed to fetch history from database. Falling back to local storage.", error);
+    }
+  }
   const history = localStorage.getItem('guardai_scan_history');
   return history ? JSON.parse(history) : [];
 }
 
 // Save scan result to history
-export function saveToHistory(scanResult) {
-  const history = getHistory();
-  // Avoid duplicating by analysis_id
-  if (!history.some(item => item.analysis_id === scanResult.analysis_id)) {
-    const updated = [
-      {
-        analysis_id: scanResult.analysis_id,
-        timestamp: new Date().toISOString(),
-        score: scanResult.summary.security_score,
-        language: scanResult.language || 'python',
-        critical: scanResult.summary.critical,
-        high: scanResult.summary.high,
-        medium: scanResult.summary.medium,
-        low: scanResult.summary.low,
-        summary: scanResult.summary,
-        findings: scanResult.findings,
-        code: scanResult.code
-      },
-      ...history
-    ];
-    localStorage.setItem('guardai_scan_history', JSON.stringify(updated));
+export async function saveToHistory(scanResult) {
+  // If logged in, the Express proxy backend already saves it automatically
+  if (!isLoggedIn) {
+    const history = await getHistory();
+    if (!history.some(item => item.analysis_id === scanResult.analysis_id)) {
+      const updated = [
+        {
+          analysis_id: scanResult.analysis_id,
+          timestamp: new Date().toISOString(),
+          score: scanResult.summary.security_score,
+          language: scanResult.language || 'python',
+          critical: scanResult.summary.critical,
+          high: scanResult.summary.high,
+          medium: scanResult.summary.medium,
+          low: scanResult.summary.low,
+          summary: scanResult.summary,
+          findings: scanResult.findings,
+          code: scanResult.code
+        },
+        ...history
+      ];
+      localStorage.setItem('guardai_scan_history', JSON.stringify(updated));
+    }
   }
 }
 
 // Delete from history
-export function deleteFromHistory(analysisId) {
-  const history = getHistory();
+export async function deleteFromHistory(analysisId) {
+  if (isLoggedIn) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/history/${analysisId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) return;
+    } catch (error) {
+      console.error("Failed to delete record from database:", error);
+    }
+  }
+  
+  const history = await getHistory();
   const filtered = history.filter(item => item.analysis_id !== analysisId);
   localStorage.setItem('guardai_scan_history', JSON.stringify(filtered));
 }
 
 // Clear all history
-export function clearHistory() {
+export async function clearHistory() {
+  if (isLoggedIn) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/history`, {
+        method: 'DELETE'
+      });
+      if (response.ok) return;
+    } catch (error) {
+      console.error("Failed to clear database vault:", error);
+    }
+  }
   localStorage.removeItem('guardai_scan_history');
 }
 
 // Get finding by Analysis ID
-export function getAnalysisResult(analysisId) {
-  const history = getHistory();
+export async function getAnalysisResult(analysisId) {
+  const history = await getHistory();
   return history.find(item => item.analysis_id === analysisId) || null;
 }
 
 // Call API or fallback to mock
 export async function analyzeCode(code, language) {
   try {
-    const response = await fetch(`${BACKEND_URL}/analyze/`, {
+    const response = await fetch(`${BACKEND_URL}/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -77,7 +212,7 @@ export async function analyzeCode(code, language) {
         language,
         code
       };
-      saveToHistory(result);
+      await saveToHistory(result);
       return result;
     } else {
       throw new Error(`Server returned status: ${response.status}`);
@@ -85,11 +220,10 @@ export async function analyzeCode(code, language) {
   } catch (error) {
     console.warn("Backend API is unreachable. Falling back to Demo Mode with mock results.", error);
     
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const mockResult = generateMockResponse(code, language);
-    saveToHistory(mockResult);
+    await saveToHistory(mockResult);
     return mockResult;
   }
 }
@@ -217,7 +351,6 @@ function generateMockResponse(code, language) {
       }
     ];
   } else {
-    // Standard default fallback for generic languages
     summary = { security_score: 60, critical: 1, high: 1, medium: 0, low: 0 };
     findings = [
       {

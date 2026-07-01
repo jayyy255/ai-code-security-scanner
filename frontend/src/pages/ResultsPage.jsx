@@ -35,26 +35,34 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // 1. Check if passed in router state
-    if (location.state && location.state.data) {
-      const data = location.state.data;
-      setResult(data);
-      if (data.findings && data.findings.length > 0) {
-        setSelectedFinding(data.findings[0]);
-      }
-    } else {
-      // 2. Fetch from history vault directly (e.g. on page refresh)
-      const data = getAnalysisResult(analysisId);
-      if (data) {
+    async function loadResult() {
+      // 1. Check if passed in router state
+      if (location.state && location.state.data) {
+        const data = location.state.data;
         setResult(data);
         if (data.findings && data.findings.length > 0) {
           setSelectedFinding(data.findings[0]);
         }
       } else {
-        // Redirect to analyze page if report not found
-        navigate('/analyze');
+        // 2. Fetch from history vault directly (e.g. on page refresh)
+        try {
+          const data = await getAnalysisResult(analysisId);
+          if (data) {
+            setResult(data);
+            if (data.findings && data.findings.length > 0) {
+              setSelectedFinding(data.findings[0]);
+            }
+          } else {
+            // Redirect to analyze page if report not found
+            navigate('/analyze');
+          }
+        } catch (err) {
+          console.error("Error loading scan result:", err);
+          navigate('/analyze');
+        }
       }
     }
+    loadResult();
   }, [analysisId, location.state, navigate]);
 
   if (!result) {

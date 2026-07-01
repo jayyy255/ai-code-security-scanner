@@ -18,20 +18,25 @@ export default function HistoryPage() {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    setHistory(getHistory());
+    async function loadHistory() {
+      const data = await getHistory();
+      setHistory(data);
+    }
+    loadHistory();
   }, []);
 
-  const handleDeleteItem = (id, e) => {
+  const handleDeleteItem = async (id, e) => {
     e.stopPropagation(); // Avoid triggering row navigate click
     if (window.confirm("Are you sure you want to delete this scan record?")) {
-      deleteFromHistory(id);
-      setHistory(getHistory());
+      await deleteFromHistory(id);
+      const data = await getHistory();
+      setHistory(data);
     }
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (window.confirm("WARNING: Are you sure you want to clear your entire scan history? This action is permanent.")) {
-      clearHistory();
+      await clearHistory();
       setHistory([]);
     }
   };
