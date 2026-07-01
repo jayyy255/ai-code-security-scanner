@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -11,8 +12,9 @@ const ScanHistory = require('./models/ScanHistory');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = 'mongodb+srv://admin:nopassword123@cluster0.qdavyns.mongodb.net/?appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://admin:nopassword123@cluster0.qdavyns.mongodb.net/?appName=Cluster0';
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+const FRONTEND_URL = process.env.FRONTEND_URL || true;
 
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
@@ -26,7 +28,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: true,
+  origin: FRONTEND_URL,
   credentials: true
 }));
 
@@ -34,8 +36,8 @@ app.use(express.json({ limit: '10mb' }));
 
 // Session Configuration
 app.use(session({
-  name: 'guardai.sid',
-  secret: 'guardai-super-secret-key-1337',
+  name: 'reviewer.sid',
+  secret: process.env.SESSION_SECRET || 'reviewer-session-secret-key-1337',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
@@ -46,7 +48,7 @@ app.use(session({
   cookie: {
     maxAge: 14 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: false, // Set to true in production with HTTPS
+    secure: process.env.NODE_ENV === 'production', // Secure cookies in production over HTTPS
     sameSite: 'lax'
   }
 }));
@@ -170,7 +172,7 @@ app.post('/auth/logout', (req, res) => {
       console.error('Logout error:', err);
       return res.status(500).json({ error: 'Failed to log out' });
     }
-    res.clearCookie('guardai.sid');
+    res.clearCookie('reviewer.sid');
     res.json({ success: true, message: 'Logged out successfully' });
   });
 });
